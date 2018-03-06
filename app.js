@@ -1,9 +1,10 @@
 const express = require('express');
+const fs = require('fs');
 const dataFromGoogle = require('./data-from-google');
 const app = express();
 
 
-const port = process.env.PORT /*'1337'*/;
+const port = process.env.PORT;
 
 app.get('/api/imagesearch/:search', (req, res) => {
   let search = req.params.search;
@@ -12,10 +13,27 @@ app.get('/api/imagesearch/:search', (req, res) => {
   dataFromGoogle(search, offset, (results) => {
     res.json(results);
   });
+  fs.readFile('data-base.json', 'utf8', (e, data) => {
+    if (e) throw e;
+    let date = new Date();
+    let current = JSON.parse(data);
+    current.unshift({
+      term: search,
+      when: date
+    });
+    if (current.length > 10) current.pop();
+    console.log(current);
+    fs.writeFile('data-base.json', JSON.stringify(current), (e) => {
+      if (e) throw e;
+    });
+  });
 });
 
-app.get('/api/latest/imagesearch/', (req, res) => {
-  res.end('on verra plus tard pour cette partie');
+app.get('/api/latest/imagesearch', (req, res) => {
+  fs.readFile('data-base.json', 'utf8', (e, data) => {
+    if (e) throw e;
+    res.json(JSON.parse(data));
+  });
 });
 
 app.get('*', (req, res) => {
